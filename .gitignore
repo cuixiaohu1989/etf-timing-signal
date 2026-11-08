@@ -1,0 +1,6 @@
+__pycache__/
+*.py[cod]
+.venv/
+*.log
+.DS_Store
+# 运行时产物：由 workflow 生成并 commit 回仓库，不忽略

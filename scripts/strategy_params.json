@@ -1,0 +1,38 @@
+{
+  "strategy_version": "2026.11.06-base",
+  "description": "基于文献的 ETF 五规则择时 + 波动率倒数缩放 + 风险总仓封顶，T日收盘信号 T+1 执行",
+  "source_scripts": [
+    "05-实验代码/run_etf_timing_backtest.py",
+    "05-实验代码/run_portfolio_comparison.py",
+    "05-实验代码/analyze_new_combo_position.py"
+  ],
+  "indicators": {
+    "ma20": 20,
+    "ma60": 60,
+    "ma200": 200,
+    "vol20_annualized_pct": "std(ddof=1) * sqrt(252) * 100",
+    "q80": "vol20.rolling(500, min_periods=120).quantile(0.80)",
+    "hwm60": "prices.rolling(60, min_periods=20).max()",
+    "vol60": "rets.rolling(60, min_periods=20).std(ddof=1) * sqrt(252) * 100"
+  },
+  "rules": {
+    "C0": "价 < MA200，或高波且破 MA60，或高波且空仓 -> 0%",
+    "A": "仅月末门控 + 价在 MA200 上 + MA20 >= MA60 + 低波 -> 100%",
+    "L1": "跌破 MA60 减半，或月末高波回落抢跑 -> 50%",
+    "T0": "高波踩刹车 -> 50%",
+    "D1": "创新高零回撤缓冲 -> 75%"
+  },
+  "portfolio": {
+    "new_combo_risk_codes": ["518880.SH", "513500.SH", "513100.SH"],
+    "old_combo_risk_codes": ["518880.SH", "510500.SH", "510300.SH"],
+    "bond_code": "511010.SH",
+    "base_cap": {"518880.SH": 0.35, "513500.SH": 0.30, "513100.SH": 0.30, "510500.SH": 0.30, "510300.SH": 0.30},
+    "inverse_vol": "(10 / vol60.clip(lower=8)).clip(upper=1.2)",
+    "risk_cap": 0.85,
+    "cost_rate_one_way": 0.0005,
+    "buffer_threshold": 0.04,
+    "execution": "T日收盘产生信号，T+1 执行；减仓立即执行，加仓需换手 >= 4%"
+  },
+  "universe_size": 14,
+  "note": "参数快照随 signal.json 一同发布。任何参数改动请同步升版本号，否则历史信号不可比。"
+}

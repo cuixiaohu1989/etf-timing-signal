@@ -1,0 +1,7 @@
+# 云端每日信号服务的最小依赖（CI 使用 Python 3.12）。
+# 核心算法副本已把 matplotlib 改为可选导入，CI 不生成图表，无需中文字体与绘图库。
+# 上限锁在 3.0 之前，避免 pandas 大版本行为变化影响 rolling quantile / BDay 口径；
+# signal.json 的 params 会记录策略版本，实际库版本可在 Actions 日志中追溯。
+pandas>=2.2,<3.0
+numpy>=1.26,<3.0
+requests>=2.31,<3.0

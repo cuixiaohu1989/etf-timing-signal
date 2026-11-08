@@ -1,0 +1,107 @@
+name: "10 每日 ETF 择时信号"
+
+# 全部时间按 UTC 写（北京时间 = UTC + 8）。
+# 三个时点幂等，任一成功即可，重复运行会自动跳过已补齐的交易日：
+#   09:40 UTC = 北京 17:40  主跑（收盘后行情稳定）
+#   10:50 UTC = 北京 18:50  当天二次兜底（防 cron 排队被丢弃）
+#   00:15 UTC = 北京 08:15  次日/当日早上补跑（防前一晚两个时点都失败）
+# 全部避开 :00 整点（GitHub 官方说明整点负载最高，可能延迟或丢弃排队任务）。
+# cron 只在默认分支生效。公开仓库 60 天无活动会自动禁用定时工作流：
+# 本工作流每个工作日都写回一次 update_status.json 并 commit（GITHUB_TOKEN 的 push
+# 是否计入 GitHub 的「仓库活动」官方未明确定义，不能打包票），所以另提供可选保活：
+# 在仓库 Secrets 里加 KEEPALIVE_TOKEN（仅本仓库 Contents 读写的 fine-grained PAT），
+# checkout 会自动优先用它，每日 commit 即以你的真实账号产生，稳稳算活动。
+# 不配置也能正常跑，页面会靠「错过预定时点数」在停摆后标红。
+on:
+  schedule:
+    - cron: "40 9 * * 1-5"
+    - cron: "50 10 * * 1-5"
+    - cron: "15 0 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      strict:
+        description: "行情双源严格核验（1=严格，0=新浪单源降级）"
+        required: false
+        default: "1"
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+# 串行执行，避免两次定时任务并发写同一批 CSV
+concurrency:
+  group: etf-daily-signal
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          # 可选：配了 KEEPALIVE_TOKEN 就用真实账号推送，见文件头注释；
+          # 未配置时退回内置 GITHUB_TOKEN，功能完全一致。
+          token: ${{ secrets.KEEPALIVE_TOKEN || github.token }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: 安装依赖
+        run: pip install -r requirements.txt
+
+      # 取数失败不中断后续步骤：脚本已把 result=failed 与错误原因写进
+      # site/update_status.json，页面据此整页标红，避免「旧信号冒充新结论」。
+      - name: 增量更新 14 只 ETF 日线
+        id: update
+        continue-on-error: true
+        env:
+          QUOTE_STRICT: ${{ github.event.inputs.strict || '1' }}
+        run: python scripts/fetch_and_update.py
+
+      - name: 全量重算信号并生成 signal.json
+        if: always()
+        run: python scripts/build_signal.py
+
+      - name: 提交数据与信号快照
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/daily_hfq data/etf_data_summary.csv site/
+          if git diff --cached --quiet; then
+            echo "无文件变化，跳过提交"
+          else
+            git commit -m "signal: $(date -u +'%Y-%m-%d %H:%M UTC') [skip ci]"
+            git push
+          fi
+
+      # 若你的交易所通知网站用的是 gh-pages 分支或 docs/ 目录，
+      # 把下面三步替换为 peaceiris/actions-gh-pages@v4 推送 site/ 到 gh-pages 即可。
+      - name: 配置 Pages
+        if: always()
+        uses: actions/configure-pages@v5
+
+      - name: 上传站点产物
+        if: always()
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: 部署 Pages
+        if: always()
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: 取数失败则让作业标红（页面此时已显示异常）
+        if: steps.update.outcome == 'failure'
+        run: |
+          echo "::error::行情取数失败。页面已标注数据异常并保留上一份信号，请看 site/update_status.json 与本作业日志。"
+          exit 1

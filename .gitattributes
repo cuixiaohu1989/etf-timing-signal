@@ -1,0 +1,12 @@
+# 统一 LF：Windows 本地 commit 与 ubuntu-latest 每日写回之间，
+# 否则换行符差异会让 14 只 CSV 每次都产生整文件 diff，仓库迅速膨胀。
+* text=auto eol=lf
+*.csv  text eol=lf
+*.json text eol=lf
+*.py   text eol=lf
+*.yml  text eol=lf
+*.html text eol=lf
+*.md   text eol=lf
+*.txt  text eol=lf
+*.sh   text eol=lf
+*.png  binary

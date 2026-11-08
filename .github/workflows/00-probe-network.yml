@@ -1,0 +1,35 @@
+name: "00 连通性预检（上线前必跑一次）"
+
+# 只手动触发，不占用 cron 额度。
+# 用途：从 GitHub 境外出口实测新浪 / 腾讯 / 东财能否连通，决定 10-daily-signal.yml 能否启用。
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: 安装最小依赖
+        run: pip install -r requirements.txt
+
+      - name: 探测境外出口到国内行情接口
+        run: python scripts/probe_network.py
+
+      - name: 归档预检报告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: network-probe-result
+          path: scripts/probe_result.json
+          retention-days: 30

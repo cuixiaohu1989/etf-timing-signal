@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23c62828'/%3E%3C/svg%3E">
+<title>ETF 择时信号 · 下一交易日目标仓位</title>
+<style>
+  :root{
+    --bg:#faf7f5; --card:#ffffff; --line:#eae3df; --ink:#1f2328; --muted:#6b7280;
+    --red:#c62828; --red-soft:#fdecec; --green:#2e7d32; --green-soft:#eaf5eb;
+    --amber:#b26a00; --amber-soft:#fff5e3; --blue:#1d4ed8;
+    --shadow:0 1px 2px rgba(30,20,15,.04),0 8px 24px rgba(30,20,15,.05);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
+    line-height:1.6;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1120px;margin:0 auto;padding:28px 20px 64px}
+  header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:20px}
+  h1{font-size:26px;margin:0 0 4px;letter-spacing:-.4px}
+  h1 .mark{color:var(--red)}
+  .sub{color:var(--muted);font-size:13px;margin:0}
+  .badge{display:inline-flex;align-items:center;gap:7px;padding:7px 13px;border-radius:999px;
+    font-size:13px;font-weight:600;border:1px solid transparent;white-space:nowrap}
+  .badge .dot{width:8px;height:8px;border-radius:50%;background:currentColor}
+  .b-ok{color:var(--green);background:var(--green-soft);border-color:#cfe8d2}
+  .b-warn{color:var(--amber);background:var(--amber-soft);border-color:#f3ddb0}
+  .b-bad{color:var(--red);background:var(--red-soft);border-color:#f5cccc}
+  .alert{padding:13px 16px;border-radius:12px;font-size:14px;margin-bottom:18px;border:1px solid transparent}
+  .alert.ok{background:var(--green-soft);border-color:#cfe8d2;color:#1f5d24}
+  .alert.warn{background:var(--amber-soft);border-color:#f3ddb0;color:#7a4a00}
+  .alert.bad{background:var(--red-soft);border-color:#f5cccc;color:#8e1c1c}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:16px;
+    padding:20px;box-shadow:var(--shadow);margin-bottom:18px}
+  .panel-title{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;
+    gap:10px;margin:0 0 16px;font-size:15px;font-weight:700}
+  .panel-title .hint{font-weight:400;font-size:12px;color:var(--muted)}
+  .dates{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+  .date-item{background:#fcfaf9;border:1px solid var(--line);border-radius:10px;padding:11px 13px}
+  .date-item .k{font-size:11px;color:var(--muted);letter-spacing:.3px}
+  .date-item .v{font-size:17px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:2px}
+  .tabs{display:inline-flex;background:#f3eeeb;border-radius:9px;padding:3px;gap:2px}
+  .tab{border:0;background:transparent;padding:6px 14px;border-radius:7px;font-size:13px;
+    cursor:pointer;color:var(--muted);font-weight:600;font-family:inherit}
+  .tab.on{background:#fff;color:var(--red);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:12px}
+  .card{border:1px solid var(--line);border-radius:13px;padding:15px;background:#fff;position:relative;overflow:hidden}
+  .card.bond{background:#fbfcfd}
+  .card .code{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .card .name{font-size:14px;font-weight:700;margin:1px 0 10px}
+  .card .w{font-size:32px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-1px}
+  .card .w small{font-size:15px;font-weight:600;margin-left:2px;color:var(--muted)}
+  .card .chg{margin-top:9px;font-size:12px;font-weight:600}
+  .up{color:var(--red)} .down{color:var(--green)} .flat{color:var(--muted)}
+  .bar{height:6px;border-radius:4px;background:#f0eae6;margin-top:12px;overflow:hidden}
+  .bar i{display:block;height:100%;background:var(--red);border-radius:4px}
+  .card.bond .bar i{background:#94a3b8}
+  .riskline{margin-top:16px;padding-top:14px;border-top:1px dashed var(--line);
+    display:flex;flex-wrap:wrap;gap:14px;font-size:13px;color:var(--muted)}
+  .riskline b{color:var(--ink);font-variant-numeric:tabular-nums}
+  table{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums}
+  th,td{padding:9px 8px;text-align:right;border-bottom:1px solid #f1ece9;white-space:nowrap}
+  th{font-size:11px;color:var(--muted);font-weight:600;background:#fcfaf9;position:sticky;top:0}
+  th:first-child,td:first-child,th:nth-child(2),td:nth-child(2),th:nth-child(3),td:nth-child(3){text-align:left}
+  .grp{font-size:11px;color:var(--muted);background:#f4f1ef;padding:1px 6px;border-radius:5px}
+  .grp.in{color:var(--red);background:var(--red-soft)}
+  tbody tr:hover{background:#fcf8f6}
+  .tablewrap{overflow-x:auto;max-height:520px;overflow-y:auto;border:1px solid var(--line);border-radius:10px}
+  .tag{display:inline-block;padding:1px 7px;border-radius:5px;font-size:11px;font-weight:600}
+  .tag.r{background:var(--red-soft);color:var(--red)}
+  .tag.g{background:var(--green-soft);color:var(--green)}
+  .tag.n{background:#f1f0ee;color:var(--muted)}
+  .rule{font-size:11.5px;color:var(--muted);max-width:230px;overflow:hidden;text-overflow:ellipsis}
+  .kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px 24px;font-size:13px}
+  .kv div{display:flex;justify-content:space-between;gap:12px;border-bottom:1px dashed var(--line);padding:6px 0}
+  .kv span{color:var(--muted)} .kv b{font-weight:600;text-align:right}
+  .btn{display:inline-flex;align-items:center;gap:6px;padding:9px 15px;border-radius:9px;
+    background:var(--red);color:#fff;text-decoration:none;font-size:13px;font-weight:600}
+  .btn:hover{background:#a91f1f}
+  footer{color:var(--muted);font-size:12px;text-align:center;padding:8px 12px 0;line-height:1.9}
+  .loading{text-align:center;padding:70px 20px;color:var(--muted)}
+  @media (max-width:640px){.wrap{padding:18px 12px 48px}h1{font-size:21px}.card .w{font-size:27px}}
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+  <div class="loading">正在读取信号数据…</div>
+</div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const esc = (v) => String(v ?? '—').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = (v, d=2) => (v===null||v===undefined||Number.isNaN(Number(v))) ? '—' : Number(v).toFixed(d);
+const code6 = (c) => String(c).split('.')[0];
+
+function shanghaiToday(){
+  try{
+    const p = new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Shanghai',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).formatToParts(new Date());
+    const g = t => p.find(x=>x.type===t).value;
+    return {date:`${g('year')}-${g('month')}-${g('day')}`, hour:Number(g('hour')), minute:Number(g('minute'))};
+  }catch(e){ const d=new Date(); return {date:d.toISOString().slice(0,10),hour:d.getHours(),minute:d.getMinutes()}; }
+}
+function workdaysBetween(fromStr, toStr){
+  // 统计 (from, to] 之间的工作日数量，用于粗略判断数据是否陈旧（不含法定节假日修正）
+  const a = new Date(fromStr+'T00:00:00Z'), b = new Date(toStr+'T00:00:00Z');
+  let n=0, cur=new Date(a);
+  while(cur < b){ cur.setUTCDate(cur.getUTCDate()+1); const w=cur.getUTCDay(); if(w>=1&&w<=5) n++; }
+  return n;
+}
+function cronSlotsMissed(fromDate, toDate){
+  // 统计 (from, to] 之间「本应触发却没有留下运行记录」的预定时点数。
+  // 必须与 .github/workflows/10-daily-signal.yml 的 cron 保持一致：UTC 周一至周五 00:15 / 09:40 / 10:50。
+  // 用「错过几个时点」而不是「过了多少小时」，周末与法定长假才不会被误判成停摆。
+  const slots = [[0,15],[9,40],[10,50]];
+  const start = fromDate.getTime(), end = toDate.getTime();
+  let n = 0;
+  const d = new Date(Date.UTC(fromDate.getUTCFullYear(), fromDate.getUTCMonth(), fromDate.getUTCDate()-1));
+  const last = new Date(Date.UTC(toDate.getUTCFullYear(), toDate.getUTCMonth(), toDate.getUTCDate()+1));
+  while(d < last){
+    if(d.getUTCDay()>=1 && d.getUTCDay()<=5){
+      for(const [h,m] of slots){
+        const t = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), h, m);
+        if(t>start && t<=end) n++;
+      }
+    }
+    d.setUTCDate(d.getUTCDate()+1);
+  }
+  return n;
+}
+function parseSh(v){
+  if(!v) return null;
+  const m = String(v).match(/(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}:\d{2})/);
+  return m ? new Date(m[1]+'T'+m[2]+'+08:00') : null;
+}
+function freshness(s){
+  const f = s.freshness||{}, t = shanghaiToday();
+  // 1) 明确失败优先标红
+  if(f.update_result==='failed' || (f.errors||[]).length)
+    return {level:'bad', badge:'数据异常', msg:`最近一次行情更新失败：${esc((f.errors||[])[0]||'未知原因')}。当前页面保留上一份信号，请勿据此当作最新结论，可点页面底部「手动重新运行」补跑。`};
+  // 2) 定时任务是否还活着：以「上次尝试之后漏掉了几个预定时点」为准。
+  //    不用数据日期（长假本来就不变），也不用固定小时数（周末两天没有 cron，会每周一早上误报）。
+  //    连续漏掉 4 个时点 = 至少一整个工作日的三次补跑加一次都没成功，才判定停摆。
+  const att = parseSh(f.last_attempt_at);
+  const missed = att ? cronSlotsMissed(att, new Date()) : null;
+  if(missed!==null && missed>=4)
+    return {level:'bad', badge:'定时任务停摆', msg:`上次自动运行是 ${esc(f.last_attempt_at)}，之后已连续错过 ${missed} 个预定时点。定时工作流可能被禁用、排队被丢弃或连续失败，请到 Actions 页面手动运行一次并检查 workflow 状态。`};
+  // 3) 交易日历里已有更新的交易日，但数据没跟上 -> 静默缺数，标红
+  const days = f.recent_trade_days||[];
+  const calLast = days.length ? days[days.length-1] : null;
+  const lag = workdaysBetween(s.data_end_date, t.date);
+  if(calLast && calLast > s.data_end_date && lag>=1)
+    return {level:'bad', badge:'数据未跟上', msg:`行情日历最新交易日为 ${esc(calLast)}，但信号数据仍停在 ${esc(s.data_end_date)}。请手动重新运行补数据。`};
+  // 4) 降级模式 / 收盘后当天还没刷新 -> 黄色提醒
+  if(f.data_quality==='single_source')
+    return {level:'warn', badge:'单源降级', msg:`当前为新浪单源模式，未做腾讯双源交叉核验（预检显示腾讯不可用或已手动降级）。数据截止 ${esc(s.data_end_date)}，请人工留意异常值。`};
+  if(lag>=1 && t.hour>=18)
+    return {level:'warn', badge:'需要留意', msg:`数据截止 ${esc(s.data_end_date)}。若今天是交易日且已过 18:00，建议点底部「手动重新运行」补一次；若处于法定节假日则属正常。`};
+  return {level:'ok', badge:'数据正常', msg:`数据截止 ${esc(s.data_end_date)}，信号已于收盘后生成。下一交易日目标仓位已锁定，隔夜消息不改变该目标。`};
+}
+
+function cardHtml(code, name, w, chg, isBond, instruments){
+  const cls = chg>0.005?'up':(chg<-0.005?'down':'flat');
+  const arrow = chg>0.005?'▲ 加仓 ':(chg<-0.005?'▼ 减仓 ':'— 不变 ');
+  const bond = isBond?' bond':'';
+  return `<div class="card${bond}">
+    <div class="code">${esc(code)}</div>
+    <div class="name">${esc(name)}</div>
+    <div class="w">${fmt(w)}<small>%</small></div>
+    <div class="chg ${cls}">${arrow}${chg>0.005?'+':''}${fmt(chg)} 百分点</div>
+    <div class="bar"><i style="width:${Math.min(100,Math.max(0,w))}%"></i></div>
+  </div>`;
+}
+
+function render(s){
+  const st = freshness(s);
+  const nameMap = {}; (s.instruments||[]).forEach(i=>nameMap[i.code]=i.name);
+  const tab = window.__tab || new URLSearchParams(location.search).get('tab') || 'new';
+  const c = s.combos[tab];
+  const codes = [...c.risk_codes, c.bond_code];
+  const cards = codes.map(code=>cardHtml(code, nameMap[code]||code,
+      c.next_target_pct[code]??0, c.changes_pp[code]??0, code===c.bond_code)).join('');
+  const refresh = s.repo
+    ? `<a class="btn" href="https://github.com/${esc(s.repo)}/actions/workflows/10-daily-signal.yml" target="_blank" rel="noopener">↻ 手动重新运行</a>`
+    : '';
+
+  const rows = (s.instruments||[]).map(i=>{
+    const volTag = i.vol_above_q80 ? '<span class="tag r">超阈值</span>' : '<span class="tag g">正常</span>';
+    const inNew = !!i.in_new_combo, inOld = !!i.in_old_combo;
+    const inCombo = tab==='new' ? inNew : inOld;
+    const dVal = tab==='new' ? i.new_change_pp : i.old_change_pp;
+    const dDir = tab==='new' ? i.new_direction : i.old_direction;
+    const wVal = tab==='new' ? i.new_next_pct : i.old_next_pct;
+    const dirCls = dDir==='加仓'?'up':(dDir==='减仓'?'down':'flat');
+    const grp = (inNew&&inOld)?'两组合':(inNew?'海外组合':(inOld?'原股债金':'观察池'));
+    const grpCls = (inNew||inOld)?'grp in':'grp';
+    const wCell = inCombo ? `${fmt(wVal)}%` : '—';
+    const dCell = inCombo
+      ? `<span class="${dirCls}">${esc(dDir)} ${dVal>0?'+':''}${fmt(dVal)}</span>` : '—';
+    return `<tr${inCombo?'':' style="opacity:.5"'}>
+      <td>${esc(code6(i.code))}</td><td>${esc(i.name)}</td><td><span class="${grpCls}">${grp}</span></td>
+      <td>${fmt(i.close_raw,3)}</td><td>${fmt(i.ma60,3)}</td><td>${fmt(i.ma200,3)}</td>
+      <td>${fmt(i.vol20_pct)}</td><td>${fmt(i.q80_pct)}</td><td>${volTag}</td>
+      <td>${fmt(i.five_rule_weight_pct,1)}%</td>
+      <td class="rule" title="${esc(i.rule)}">${esc(i.rule)}</td>
+      <td>${wCell}</td>
+      <td class="${dirCls}">${dCell}</td>
+    </tr>`;
+  }).join('');
+
+  const p = s.params||{}, pf = p.portfolio||{};
+  $('#app').innerHTML = `
+  <header>
+    <div>
+      <h1><span class="mark">●</span> ETF 择时信号 · 下一交易日目标仓位</h1>
+      <p class="sub">五规则状态机 + 波动率倒数缩放 · 严格 T+1 口径 · 策略版本 ${esc(s.strategy_version)}</p>
+    </div>
+    <div class="badge b-${st.level}"><span class="dot"></span>${st.badge}</div>
+  </header>
+
+  <div class="alert ${st.level}">${st.msg}</div>
+
+  <section class="panel">
+    <div class="panel-title">关键日期 <span class="hint">按上海时间（UTC+8）</span></div>
+    <div class="dates">
+      <div class="date-item"><div class="k">数据截止日</div><div class="v">${esc(s.data_end_date)}</div></div>
+      <div class="date-item"><div class="k">最新信号日（收盘）</div><div class="v">${esc(s.signal_date)}</div></div>
+      <div class="date-item"><div class="k">本交易日（已执行）</div><div class="v">${esc(s.current_execution_date)}</div></div>
+      <div class="date-item"><div class="k">下一交易日（预计）</div><div class="v" style="color:var(--red)">${esc(s.next_execution_hint)}</div></div>
+    </div>
+    <p class="sub" style="margin-top:11px">${esc(s.execution_rule)}；${esc(s.next_execution_note)}</p>
+  </section>
+
+  <section class="panel">
+    <div class="panel-title">
+      <span>下一交易日应执行仓位</span>
+      <div class="tabs">
+        <button class="tab ${tab==='new'?'on':''}" data-tab="new">海外组合</button>
+        <button class="tab ${tab==='old'?'on':''}" data-tab="old">原股债金组合</button>
+      </div>
+    </div>
+    <div class="cards">${cards}</div>
+    <div class="riskline">
+      <span>风险资产总仓 <b>${fmt(c.next_risk_total_pct)}%</b>（上限 ${fmt((pf.risk_cap||0.85)*100,0)}%）</span>
+      <span>本交易日风险仓 <b>${fmt(c.current_risk_total_pct)}%</b></span>
+      <span>组合：${esc(c.name)}</span>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-title">全部标的信号依据
+      <span class="hint">共 14 只观察标的；权重与调仓方向随上方组合标签切换，组合外标的灰显仅供研究对照</span></div>
+    <div class="tablewrap"><table>
+      <thead><tr>
+        <th>代码</th><th>名称</th><th>组合</th><th>不复权收盘</th><th>MA60</th><th>MA200</th>
+        <th>vol20(%)</th><th>q80(%)</th><th>波动状态</th><th>五规则仓位</th>
+        <th style="text-align:left">触发规则</th><th>下一交易日权重</th><th>调仓方向</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-title">运行状态与参数快照 <span class="hint">每次生成随 signal.json 一同发布</span></div>
+    <div class="kv">
+      <div><span>策略版本</span><b>${esc(s.strategy_version)}</b></div>
+      <div><span>生成时间</span><b>${esc(s.generated_at)}</b></div>
+      <div><span>上次取数成功</span><b>${esc(s.freshness?.last_success_at||'—')}</b></div>
+      <div><span>本次取数尝试</span><b>${esc(s.freshness?.last_attempt_at||'—')}</b></div>
+      <div><span>数据源质量</span><b>${s.freshness?.data_quality==='dual_source'?'双源交叉核验':(s.freshness?.data_quality==='single_source'?'单源降级':'未知')}</b></div>
+      <div><span>更新结果</span><b>${esc(s.freshness?.update_result||'—')}</b></div>
+      <div><span>单边成本</span><b>${fmt((pf.cost_rate_one_way||0)*10000,0)} bp</b></div>
+      <div><span>加仓换手缓冲</span><b>${fmt((pf.buffer_threshold||0)*100,0)}%</b></div>
+      <div><span>标的池</span><b>${esc(p.universe_size||14)} 只</b></div>
+      <div><span>交易日历来源</span><b>${esc(s.freshness?.calendar_source||'—')}</b></div>
+    </div>
+    <p class="sub" style="margin-top:12px">${esc((p.rules?.C0||''))}　|　${esc((p.rules?.A||''))}　|　${esc((p.rules?.T0||''))}</p>
+  </section>
+
+  <footer>
+    <p style="margin-bottom:12px">${refresh}</p>
+    <p>${esc(s.disclaimer)}</p>
+    <p>数据来自公开行情接口，仅用于策略研究复盘；页面为静态托管，不收集任何访问者信息。</p>
+  </footer>`;
+
+  document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>{
+    window.__tab = b.dataset.tab;
+    try{ const u=new URL(location.href); u.searchParams.set('tab',b.dataset.tab); history.replaceState(null,'',u); }catch(e){}
+    render(s);
+  }));
+}
+
+fetch('./signal.json?t=' + Date.now(), {cache:'no-store'})
+  .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+  .then(render)
+  .catch(e=>{
+    $('#app').innerHTML = `<div class="panel"><div class="alert bad">无法读取 signal.json：${esc(e.message)}。
+      若首次部署，请先在 Actions 页面手动运行一次「10 每日 ETF 择时信号」生成数据。</div></div>`;
+  });
+</script>
+</body>
+</html>
