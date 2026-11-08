@@ -53,8 +53,8 @@
     "universe_size": 14,
     "note": "参数快照随 signal.json 一同发布。任何参数改动请同步升版本号，否则历史信号不可比。"
   },
-  "repo": null,
-  "generated_at": "2026-11-08 09:53:04",
+  "repo": "cuixiaohu1989/etf-timing-signal",
+  "generated_at": "2026-11-08 12:22:54",
   "data_end_date": "2026-11-06",
   "signal_date": "2026-11-06",
   "current_execution_date": "2026-11-06",
@@ -574,8 +574,8 @@
   ],
   "freshness": {
     "update_result": "up_to_date",
-    "last_success_at": "2026-11-08 09:44:56",
-    "last_attempt_at": "2026-11-08 09:44:56",
+    "last_success_at": "2026-11-08 12:22:40",
+    "last_attempt_at": "2026-11-08 12:22:40",
     "data_quality": "dual_source",
     "calendar_source": "sina_quotes_service",
     "recent_trade_days": [
