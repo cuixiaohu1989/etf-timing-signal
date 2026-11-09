@@ -54,7 +54,7 @@
     "note": "参数快照随 signal.json 一同发布。任何参数改动请同步升版本号，否则历史信号不可比。"
   },
   "repo": "cuixiaohu1989/etf-timing-signal",
-  "generated_at": "2026-11-09 22:28:07",
+  "generated_at": "2026-11-10 04:02:35",
   "data_end_date": "2026-11-09",
   "signal_date": "2026-11-09",
   "current_execution_date": "2026-11-09",
@@ -574,8 +574,8 @@
   ],
   "freshness": {
     "update_result": "up_to_date",
-    "last_success_at": "2026-11-09 22:27:51",
-    "last_attempt_at": "2026-11-09 22:27:51",
+    "last_success_at": "2026-11-10 04:02:22",
+    "last_attempt_at": "2026-11-10 04:02:22",
     "data_quality": "dual_source",
     "calendar_source": "sina_quotes_service+tencent_kline",
     "recent_trade_days": [
@@ -594,8 +594,8 @@
     ],
     "updated_dates": [],
     "errors": [],
-    "market_state": "closed",
-    "cutoff_ok": true,
+    "market_state": "holiday",
+    "cutoff_ok": false,
     "expected_last_trade_day": "2026-11-09"
   },
   "disclaimer": "本页面为量化研究与教学用途的策略信号展示，不构成任何投资建议、要约或承诺。历史回测不代表未来收益，据此操作风险自负。"
