@@ -1,5 +1,5 @@
 {
-  "last_attempt_at": "2026-11-08 12:22:40",
+  "last_attempt_at": "2026-11-09 14:20:07",
   "strict_mode": true,
   "data_quality": "dual_source",
   "updated_dates": [],
@@ -23,5 +23,5 @@
   "pending_dates": [],
   "result": "up_to_date",
   "data_end_date": "2026-11-06",
-  "last_success_at": "2026-11-08 12:22:40"
+  "last_success_at": "2026-11-09 14:20:07"
 }
