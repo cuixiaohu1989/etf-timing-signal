@@ -1,0 +1,10 @@
+Manual rerun trigger.
+
+Editing this file (even one character) triggers workflow
+".github/workflows/10-daily-signal.yml" via on.push.paths,
+which re-fetches quotes, recomputes signals and redeploys Pages.
+
+Use it when GitHub Actions schedule events are delayed or dropped,
+or when the page shows data lagging behind the latest trading day.
+
+2026-11-09 22:20 +08:00  initial rerun after the missed-schedule incident

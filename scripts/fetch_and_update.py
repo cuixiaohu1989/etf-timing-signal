@@ -124,22 +124,56 @@ def fetch_tencent_calendar(sym="sh510300"):
     return [row[0] for row in (d.get("day") or [])]
 
 
+def norm_day(d):
+    """腾讯 K 线偶尔返回 YYYYMMDD，统一成 YYYY-MM-DD。"""
+    s = str(d).strip()[:10]
+    if len(s) == 8 and s.isdigit():
+        return f"{s[:4]}-{s[4:6]}-{s[6:]}"
+    return s
+
+
 def get_trade_days():
-    """返回 (最近真实交易日列表, 日历来源)。新浪优先，腾讯兜底。"""
-    errors = []
+    """返回 (真实交易日列表, 日历来源, 源错误列表)。
+
+    2026-11-09 事故修复：原来「新浪成功就直接返回」，而新浪 quotes_service
+    在盘中不生成当日日线，单源日历会把「还没收盘」误判成「已是最新」。
+    现在同时取新浪与腾讯两套日历取并集，任一源先更新都能驱动补数。
+    """
+    errors, all_days, sources = [], [], []
     try:
         _, days = fetch_sina("sh510300")
         if days:
-            return days, "sina_quotes_service"
+            all_days.extend(days)
+            sources.append("sina_quotes_service")
     except Exception as exc:
         errors.append(f"sina: {type(exc).__name__}: {exc}")
     try:
         days = fetch_tencent_calendar()
         if days:
-            return days, "tencent_kline"
+            all_days.extend(days)
+            sources.append("tencent_kline")
     except Exception as exc:
-        errors.append(f"tencent: {type(exc).__name__}: {exc}")
-    raise RuntimeError("无法获取交易日历；" + " | ".join(errors))
+        errors.append(f"tencent_kline: {type(exc).__name__}: {exc}")
+    if not all_days:
+        raise RuntimeError("无法获取交易日历；" + " | ".join(errors))
+    days = sorted({norm_day(d) for d in all_days if norm_day(d)})
+    return days, "+".join(sources), errors
+
+
+def market_state_today(today_str):
+    """用腾讯实时行情时间戳区分「已收盘 / 盘中 / 休市」，返回四态之一。
+
+    休市日行情时间戳会停在上一个交易日，据此可把法定节假日与
+    「行情日历滞后」区分开，避免节假日误报。行情源不可用时返回 None。
+    """
+    try:
+        qt = fetch_tencent_qt("sh510300")
+    except Exception:
+        return None
+    ts = str(qt[30])
+    if not ts.startswith(today_str.replace("-", "")):
+        return "holiday"
+    return "closed" if (len(ts) < 12 or ts[8:12] >= "1500") else "open"
 
 
 def build_row(code, day, prev, local_prev, target_date, qt, strict, cross_border):
@@ -299,22 +333,74 @@ def main():
     }
     try:
         frames, local_last = load_local_frames()
-        trade_days, cal_source = get_trade_days()
+        trade_days, cal_source, cal_errors = get_trade_days()
         today = now_sh()
         today_str = today.strftime("%Y-%m-%d")
+        is_weekday = today.weekday() < 5
         # 只接纳已收盘的交易日：当日 15:30 之前不取当日数据
         cutoff_ok = today.time() >= dtime(15, 30)
+        market_state = market_state_today(today_str) if is_weekday else "holiday"
+
+        status["calendar_source"] = cal_source
+        status["calendar_errors"] = cal_errors
+        status["cutoff_ok"] = cutoff_ok
+        status["market_state"] = market_state
+
+        # 两路日线日历都滞后时的最后兜底：腾讯实时行情已给出「今日收盘」时间戳，
+        # 就把今天补进候选交易日，再交给逐日实查确认新浪是否已有当日日线。
+        if cutoff_ok and market_state == "closed" and today_str not in trade_days:
+            trade_days.append(today_str)
+            trade_days.sort()
+            status["calendar_patched"] = today_str
+
+        status["recent_trade_days"] = trade_days[-12:]
+        status["local_last_before"] = local_last
+
         pending = [d for d in trade_days
                    if d > local_last and d <= today_str and (d != today_str or cutoff_ok)]
         pending = pending[:args.max_days]
-        status["calendar_source"] = cal_source
-        status["recent_trade_days"] = trade_days[-12:]
-        status["local_last_before"] = local_last
+
+        # 逐日实查：日历里有该日、但新浪基准日线缺失（停牌 / 数据源滞后）时跳过该日，
+        # 不让整批 14 只因为一个不存在的日期全部失败。
+        ref_map, _ = fetch_sina("sh510300")
+        confirmed = []
+        for d in pending:
+            if d in ref_map:
+                confirmed.append(d)
+            else:
+                status.setdefault("skipped_dates", []).append(d)
+        pending = confirmed
         status["pending_dates"] = pending
 
+        # 「上次取数成功」只在真的取到数、或确认无新交易日时才刷新。
+        # 盘中等待 / 静默缺数都不能冒充成功，否则页面会误显示「今天已更新」。
+        prev_success = None
+        if os.path.exists(STATUS_PATH):
+            try:
+                with open(STATUS_PATH, encoding="utf-8") as fp:
+                    prev_success = json.load(fp).get("last_success_at")
+            except Exception:
+                pass
+        status["last_success_at"] = prev_success
+
         if not pending:
-            status["result"] = "up_to_date"
+            cal_last = trade_days[-1] if trade_days else local_last
+            status["expected_last_trade_day"] = cal_last
             status["data_end_date"] = local_last
+            if not cutoff_ok and is_weekday and market_state != "holiday":
+                status["result"] = "pre_close"
+                write_status(status)
+                print(f"[WAIT] 尚未收盘（{today:%H:%M}），今日日线未生成，等待收盘后定时任务补数")
+                return 0
+            if cal_last > local_last or today_str in status.get("skipped_dates", []):
+                status["result"] = "stale"
+                status["errors"].append(
+                    f"行情日历最新交易日 {cal_last} 晚于本地数据末日 {local_last}，"
+                    "但本次没有生成可补的交易日，疑似行情源滞后或定时任务漏跑")
+                write_status(status)
+                print(f"[STALE] {status['errors'][-1]}", file=sys.stderr)
+                return 1
+            status["result"] = "up_to_date"
             status["last_success_at"] = status["last_attempt_at"]
             write_status(status)
             print(f"[SKIP] 本地末日 {local_last} 已是最新已收盘交易日，无需更新（日历来源 {cal_source}）")
