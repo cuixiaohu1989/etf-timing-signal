@@ -110,9 +110,11 @@ function workdaysBetween(fromStr, toStr){
 }
 function cronSlotsMissed(fromDate, toDate){
   // 统计 (from, to] 之间「本应触发却没有留下运行记录」的预定时点数。
-  // 必须与 .github/workflows/10-daily-signal.yml 的 cron 保持一致：UTC 周一至周五 00:15 / 09:40 / 10:50。
+  // 必须与 .github/workflows/10-daily-signal.yml 的 cron 保持一致：
+  // UTC 周一至周五 00:15 / 09:40 / 10:50 / 12:40 / 14:40
+  // （北京 08:15 / 17:40 / 18:50 / 20:40 / 22:40，2026-11-09 后新增后两档兜底）。
   // 用「错过几个时点」而不是「过了多少小时」，周末与法定长假才不会被误判成停摆。
-  const slots = [[0,15],[9,40],[10,50]];
+  const slots = [[0,15],[9,40],[10,50],[12,40],[14,40]];
   const start = fromDate.getTime(), end = toDate.getTime();
   let n = 0;
   const d = new Date(Date.UTC(fromDate.getUTCFullYear(), fromDate.getUTCMonth(), fromDate.getUTCDate()-1));
@@ -135,15 +137,20 @@ function parseSh(v){
 }
 function freshness(s){
   const f = s.freshness||{}, t = shanghaiToday();
+  // 0) 2026-11-09 事故后新增：脚本会区分「静默缺数」与「盘中等待」，优先于其它判定
+  if(f.update_result==='stale')
+    return {level:'bad', badge:'数据未跟上', msg:`定时任务运行了，但数据仍停在 ${esc(s.data_end_date)}：${esc((f.errors||[])[0]||'行情源滞后或调度漏跑')}。请点页面底部「手动重新运行」补跑。`};
+  if(f.update_result==='pre_close')
+    return {level:'warn', badge:'等待收盘', msg:`本次运行在收盘前（${esc(f.last_attempt_at)}），当日日线尚未生成，收盘后的定时任务会自动补数。当前数据截止 ${esc(s.data_end_date)}。`};
   // 1) 明确失败优先标红
   if(f.update_result==='failed' || (f.errors||[]).length)
     return {level:'bad', badge:'数据异常', msg:`最近一次行情更新失败：${esc((f.errors||[])[0]||'未知原因')}。当前页面保留上一份信号，请勿据此当作最新结论，可点页面底部「手动重新运行」补跑。`};
   // 2) 定时任务是否还活着：以「上次尝试之后漏掉了几个预定时点」为准。
   //    不用数据日期（长假本来就不变），也不用固定小时数（周末两天没有 cron，会每周一早上误报）。
-  //    连续漏掉 4 个时点 = 至少一整个工作日的三次补跑加一次都没成功，才判定停摆。
+  //    连续漏掉 5 个时点 = 一整个工作日的五档兜底全没成功，才判定停摆。
   const att = parseSh(f.last_attempt_at);
   const missed = att ? cronSlotsMissed(att, new Date()) : null;
-  if(missed!==null && missed>=4)
+  if(missed!==null && missed>=5)
     return {level:'bad', badge:'定时任务停摆', msg:`上次自动运行是 ${esc(f.last_attempt_at)}，之后已连续错过 ${missed} 个预定时点。定时工作流可能被禁用、排队被丢弃或连续失败，请到 Actions 页面手动运行一次并检查 workflow 状态。`};
   // 3) 交易日历里已有更新的交易日，但数据没跟上 -> 静默缺数，标红
   const days = f.recent_trade_days||[];

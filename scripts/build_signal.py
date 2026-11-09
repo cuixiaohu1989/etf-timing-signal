@@ -186,6 +186,10 @@ def main():
             "recent_trade_days": status.get("recent_trade_days", []),
             "updated_dates": status.get("updated_dates", []),
             "errors": status.get("errors", []),
+            # 2026-11-09 事故后新增：便于从 signal.json 直接看出「盘中等待 / 休市 / 已收盘」
+            "market_state": status.get("market_state"),
+            "cutoff_ok": status.get("cutoff_ok"),
+            "expected_last_trade_day": status.get("expected_last_trade_day"),
         },
         "disclaimer": DISCLAIMER,
     }

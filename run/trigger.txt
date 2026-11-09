@@ -8,3 +8,4 @@ Use it when GitHub Actions schedule events are delayed or dropped,
 or when the page shows data lagging behind the latest trading day.
 
 2026-11-09 22:20 +08:00  initial rerun after the missed-schedule incident
+2026-11-09 22:35 +08:00  sync page freshness rules with the new 5-slot schedule
