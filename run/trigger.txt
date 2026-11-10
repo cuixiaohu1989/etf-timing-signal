@@ -9,3 +9,4 @@ or when the page shows data lagging behind the latest trading day.
 
 2026-11-09 22:20 +08:00  initial rerun after the missed-schedule incident
 2026-11-09 22:35 +08:00  sync page freshness rules with the new 5-slot schedule
+2026-11-10 18:35 +08:00  rerun for cron delay; add 07:40/08:40 UTC low-peak slots
