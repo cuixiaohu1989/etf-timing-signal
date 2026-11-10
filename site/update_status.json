@@ -1,10 +1,8 @@
 {
-  "last_attempt_at": "2026-11-10 18:29:35",
+  "last_attempt_at": "2026-11-10 18:32:06",
   "strict_mode": true,
   "data_quality": "dual_source",
-  "updated_dates": [
-    "2026-11-10"
-  ],
+  "updated_dates": [],
   "errors": [],
   "calendar_source": "sina_quotes_service+tencent_kline",
   "calendar_errors": [],
@@ -24,11 +22,10 @@
     "2026-11-09",
     "2026-11-10"
   ],
-  "local_last_before": "2026-11-09",
-  "pending_dates": [
-    "2026-11-10"
-  ],
-  "last_success_at": "2026-11-10 18:29:35",
-  "result": "updated",
-  "data_end_date": "2026-11-10"
+  "local_last_before": "2026-11-10",
+  "pending_dates": [],
+  "last_success_at": "2026-11-10 18:32:06",
+  "expected_last_trade_day": "2026-11-10",
+  "data_end_date": "2026-11-10",
+  "result": "up_to_date"
 }
