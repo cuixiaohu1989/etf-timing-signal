@@ -1,15 +1,13 @@
 {
-  "last_attempt_at": "2026-11-11 23:35:55",
+  "last_attempt_at": "2026-11-12 00:35:15",
   "strict_mode": true,
   "data_quality": "dual_source",
-  "updated_dates": [
-    "2026-11-11"
-  ],
+  "updated_dates": [],
   "errors": [],
   "calendar_source": "sina_quotes_service+tencent_kline",
   "calendar_errors": [],
-  "cutoff_ok": true,
-  "market_state": "closed",
+  "cutoff_ok": false,
+  "market_state": "holiday",
   "recent_trade_days": [
     "2026-10-27",
     "2026-10-28",
@@ -24,11 +22,10 @@
     "2026-11-10",
     "2026-11-11"
   ],
-  "local_last_before": "2026-11-10",
-  "pending_dates": [
-    "2026-11-11"
-  ],
-  "last_success_at": "2026-11-11 23:35:55",
-  "result": "updated",
-  "data_end_date": "2026-11-11"
+  "local_last_before": "2026-11-11",
+  "pending_dates": [],
+  "last_success_at": "2026-11-12 00:35:15",
+  "expected_last_trade_day": "2026-11-11",
+  "data_end_date": "2026-11-11",
+  "result": "up_to_date"
 }
