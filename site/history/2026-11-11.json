@@ -54,7 +54,7 @@
     "note": "参数快照随 signal.json 一同发布。任何参数改动请同步升版本号，否则历史信号不可比。"
   },
   "repo": "cuixiaohu1989/etf-timing-signal",
-  "generated_at": "2026-11-12 10:14:42",
+  "generated_at": "2026-11-12 15:06:59",
   "data_end_date": "2026-11-11",
   "signal_date": "2026-11-11",
   "current_execution_date": "2026-11-11",
@@ -575,7 +575,7 @@
   "freshness": {
     "update_result": "pre_close",
     "last_success_at": "2026-11-12 05:32:47",
-    "last_attempt_at": "2026-11-12 10:14:28",
+    "last_attempt_at": "2026-11-12 15:06:35",
     "data_quality": "dual_source",
     "calendar_source": "sina_quotes_service+tencent_kline",
     "recent_trade_days": [
@@ -594,7 +594,7 @@
     ],
     "updated_dates": [],
     "errors": [],
-    "market_state": "open",
+    "market_state": "closed",
     "cutoff_ok": false,
     "expected_last_trade_day": "2026-11-12"
   },

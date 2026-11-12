@@ -1,5 +1,5 @@
 {
-  "last_attempt_at": "2026-11-12 10:14:28",
+  "last_attempt_at": "2026-11-12 15:06:35",
   "strict_mode": true,
   "data_quality": "dual_source",
   "updated_dates": [],
@@ -7,7 +7,7 @@
   "calendar_source": "sina_quotes_service+tencent_kline",
   "calendar_errors": [],
   "cutoff_ok": false,
-  "market_state": "open",
+  "market_state": "closed",
   "recent_trade_days": [
     "2026-10-28",
     "2026-10-29",
