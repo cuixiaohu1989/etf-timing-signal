@@ -158,9 +158,13 @@ function freshness(s){
   if(f.update_result==='stale')
     return {level:'bad', badge:'数据未跟上', msg:`定时任务运行了，但数据仍停在 ${esc(s.data_end_date)}：${esc((f.errors||[])[0]||'行情源滞后或调度漏跑')}。请点页面底部「手动重新运行」补跑。`};
   if(f.update_result==='pre_close'){
-    // 15:30 之前当日日线尚未生成，属正常等待；之后仍是 pre_close，说明收盘后的定时任务没跑成
-    if(t.hour*60+t.minute < 15*60+30)
-      return {level:'warn', badge:'等待收盘', msg:`本次运行在收盘前（${esc(f.last_attempt_at)}），当日日线尚未生成，收盘后的定时任务会自动补数。当前数据截止 ${esc(s.data_end_date)}。`};
+    // 15:30 之前当日日线尚未生成。此时若数据已覆盖上一个已收盘交易日，属正常状态。
+    if(t.hour*60+t.minute < 15*60+30){
+      const prevClosed = [...(f.recent_trade_days||[])].reverse().find(d => d < t.date) || null;
+      if(prevClosed && s.data_end_date >= prevClosed)
+        return {level:'ok', badge:'数据正常', msg:`数据截止 ${esc(s.data_end_date)}，已是最新已收盘交易日。今日 ${esc(t.date)} 尚未收盘，收盘后生成新信号；想提前补跑可点页面底部「手动重新运行」。`};
+      return {level:'warn', badge:'等待收盘', msg:`本次运行在收盘前（${esc(f.last_attempt_at)}），当日日线尚未生成，且数据尚未覆盖上一已收盘交易日。收盘后的定时任务会自动补数。当前数据截止 ${esc(s.data_end_date)}。`};
+    }
     const cal = (f.recent_trade_days||[]).slice(-1)[0]||'最新交易日';
     return {level:'bad', badge:'数据未跟上', msg:`最近一次运行（${esc(f.last_attempt_at)}）在收盘前，当日日线尚未生成，之后收盘后的定时任务没有成功写入数据。行情日历已到 ${esc(cal)}，页面仍停在 ${esc(s.data_end_date)}。GitHub 定时任务偶有排队延迟或丢弃，请点页面底部「手动重新运行」补跑。`};
   }
