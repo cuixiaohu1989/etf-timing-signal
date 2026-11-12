@@ -71,6 +71,11 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      # 记录本次由哪一档 cron 触发，便于把「计划时点」与「实际运行时刻」分开核对。
+      # 官方文档说明 github.event.schedule 可访问触发的 cron 表达式，非定时事件为空。
+      - name: 记录触发来源与计划时点
+        run: echo "EVENT=${{ github.event_name }} CRON_SLOT=${{ github.event.schedule }} SHA=${{ github.sha }}"
+
       - uses: actions/checkout@v4
         with:
           fetch-depth: 1
