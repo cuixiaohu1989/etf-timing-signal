@@ -1,5 +1,5 @@
 {
-  "last_attempt_at": "2026-11-19 04:51:33",
+  "last_attempt_at": "2026-11-19 06:20:42",
   "strict_mode": true,
   "data_quality": "dual_source",
   "updated_dates": [],
@@ -24,7 +24,7 @@
   ],
   "local_last_before": "2026-11-18",
   "pending_dates": [],
-  "last_success_at": "2026-11-19 04:51:33",
+  "last_success_at": "2026-11-19 06:20:42",
   "expected_last_trade_day": "2026-11-18",
   "data_end_date": "2026-11-18",
   "result": "up_to_date"
