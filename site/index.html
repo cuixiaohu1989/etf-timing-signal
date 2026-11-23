@@ -255,9 +255,12 @@ function render(s){
   const nameMap = {}; (s.instruments||[]).forEach(i=>nameMap[i.code]=i.name);
   const tab = window.__tab || new URLSearchParams(location.search).get('tab') || 'new';
   const c = s.combos[tab];
-  const codes = [...c.risk_codes, c.bond_code];
+  // P6ETF 三阶固收：defensive_codes 可能有多只债；旧版仅 bond_code 单只，做兼容回退
+  const defCodes = (c.defensive_codes && c.defensive_codes.length) ? c.defensive_codes : [c.bond_code];
+  const codes = [...c.risk_codes, ...defCodes];
+  const defSet = new Set(defCodes);
   const cards = codes.map(code=>cardHtml(code, nameMap[code]||code,
-      c.next_target_pct[code]??0, c.changes_pp[code]??0, code===c.bond_code)).join('');
+      c.next_target_pct[code]??0, c.changes_pp[code]??0, defSet.has(code))).join('');
   const repo = s.repo || '';
   const actionsUrl = `https://github.com/${esc(repo)}/actions/workflows/10-daily-signal.yml`;
   const triggerUrl = `https://github.com/${esc(repo)}/edit/main/run/trigger.txt`;
