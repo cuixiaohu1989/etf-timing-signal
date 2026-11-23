@@ -296,7 +296,7 @@ function render(s){
   <header>
     <div>
       <h1><span class="mark">●</span> ETF 择时信号 · 下一交易日目标仓位</h1>
-      <p class="sub">五规则状态机 + 波动率倒数缩放 · 严格 T+1 口径 · 策略版本 ${esc(s.strategy_version)}</p>
+      <p class="sub">P6ETF 六ETF策略 · 五规则 + ERC + TIPP回撤垫 + 三阶固收 · 严格 T+1 口径 · 策略版本 ${esc(s.strategy_version)}</p>
     </div>
     <div class="badge b-${st.level}"><span class="dot"></span>${st.badge}</div>
   </header>
@@ -332,7 +332,7 @@ function render(s){
 
   <section class="panel">
     <div class="panel-title">全部标的信号依据
-      <span class="hint">共 14 只观察标的；权重与调仓方向随上方组合标签切换，组合外标的灰显仅供研究对照</span></div>
+      <span class="hint">共 ${(s.instruments||[]).length} 只观察标的；权重与调仓方向随上方组合标签切换，组合外标的灰显仅供研究对照</span></div>
     <div class="tablewrap"><table>
       <thead><tr>
         <th>代码</th><th>名称</th><th>组合</th><th>不复权收盘</th><th>MA60</th><th>MA200</th>

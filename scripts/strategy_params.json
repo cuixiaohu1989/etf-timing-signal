@@ -1,11 +1,12 @@
 {
-  "strategy_version": "2026.11.06-base",
-  "description": "基于文献的 ETF 五规则择时 + 波动率倒数缩放 + 风险总仓封顶，T日收盘信号 T+1 执行",
+  "strategy_version": "2026.11.23-p6etf-6etf",
+  "description": "P6.2 六ETF完整策略：五规则信号 + 克隆不变广度 + 下行半协方差ERC + TIPP回撤垫 + 三阶固收护盾 + 6.5%缓冲带，T日收盘信号 T+1 执行",
   "source_scripts": [
-    "05-实验代码/run_etf_timing_backtest.py",
-    "05-实验代码/run_portfolio_comparison.py",
-    "05-实验代码/analyze_new_combo_position.py"
+    "07-20261116-仓位分配第二次课程-马总P6.2终版策略-发给学生/05-实验代码/fof_sdk/allocator_p62.py",
+    "07-20261116-仓位分配第二次课程-马总P6.2终版策略-发给学生/05-实验代码/fof_sdk/signals.py",
+    "deploy/scripts/core/p6etf_engine.py"
   ],
+  "engine": "P6ETF / build_p62_golive_allocator (full 6ETF, 无 ADV20 锁以适配中小资金)",
   "indicators": {
     "ma20": 20,
     "ma60": 60,
@@ -13,7 +14,10 @@
     "vol20_annualized_pct": "std(ddof=1) * sqrt(252) * 100",
     "q80": "vol20.rolling(500, min_periods=120).quantile(0.80)",
     "hwm60": "prices.rolling(60, min_periods=20).max()",
-    "vol60": "rets.rolling(60, min_periods=20).std(ddof=1) * sqrt(252) * 100"
+    "cov_lookback": 60,
+    "dd_window": 60,
+    "dd_soft_daily": 0.016,
+    "dd_min_mult": 0.52
   },
   "rules": {
     "C0": "价 < MA200，或高波且破 MA60，或高波且空仓 -> 0%",
@@ -23,16 +27,30 @@
     "D1": "创新高零回撤缓冲 -> 75%"
   },
   "portfolio": {
-    "new_combo_risk_codes": ["518880.SH", "513500.SH", "513100.SH"],
-    "old_combo_risk_codes": ["518880.SH", "510500.SH", "510300.SH"],
-    "bond_code": "511010.SH",
-    "base_cap": {"518880.SH": 0.35, "513500.SH": 0.30, "513100.SH": 0.30, "510500.SH": 0.30, "510300.SH": 0.30},
-    "inverse_vol": "(10 / vol60.clip(lower=8)).clip(upper=1.2)",
+    "old_combo": {
+      "name": "原股债金升级版 6ETF",
+      "risk_codes": ["518880.SH", "510500.SH", "510300.SH"],
+      "sleeves": {
+        "Gold": {"tickers": ["518880.SH"], "cap": 0.48, "indiv_cap": 0.48},
+        "Equity": {"tickers": ["510500.SH", "510300.SH"], "cap": 0.60, "indiv_cap": 0.38}
+      }
+    },
+    "new_combo": {
+      "name": "海外升级版 6ETF",
+      "risk_codes": ["518880.SH", "513500.SH", "513100.SH"],
+      "sleeves": {
+        "Gold": {"tickers": ["518880.SH"], "cap": 0.48, "indiv_cap": 0.48},
+        "Equity": {"tickers": ["513500.SH", "513100.SH"], "cap": 0.60, "indiv_cap": 0.38}
+      }
+    },
+    "defensive": ["511010.SH", "511260.SH", "511360.SH"],
+    "defense_mechanism": "三阶滞回：债牛拉久期(511260)，债熊切短融(511360)，中枢5年国债(511010)",
     "risk_cap": 0.85,
+    "port_semi_cap": 0.052,
+    "drift_buf": 0.065,
     "cost_rate_one_way": 0.0005,
-    "buffer_threshold": 0.04,
-    "execution": "T日收盘产生信号，T+1 执行；减仓立即执行，加仓需换手 >= 4%"
+    "execution": "T日收盘产生信号，T+1 执行；重大风险信号与端部位移优先，日常漂移 < 6.5% 不调仓"
   },
-  "universe_size": 14,
-  "note": "参数快照随 signal.json 一同发布。任何参数改动请同步升版本号，否则历史信号不可比。"
+  "universe_size": 8,
+  "note": "2026-11-23 由第一课 3风险+1国债 升级为 6ETF 完整策略。两个组合共用三阶固收底仓，仅股票袖套不同。任何参数改动请同步升版本号，否则历史信号不可比。"
 }
