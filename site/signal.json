@@ -96,7 +96,7 @@
     "note": "2026-11-23 由第一课 3风险+1国债 升级为 6ETF 完整策略。两个组合共用三阶固收底仓，仅股票袖套不同。任何参数改动请同步升版本号，否则历史信号不可比。"
   },
   "repo": "cuixiaohu1989/etf-timing-signal",
-  "generated_at": "2026-11-28 03:10:01",
+  "generated_at": "2026-11-28 03:41:58",
   "data_end_date": "2026-11-27",
   "signal_date": "2026-11-27",
   "current_execution_date": "2026-11-27",
@@ -446,8 +446,8 @@
   ],
   "freshness": {
     "update_result": "up_to_date",
-    "last_success_at": "2026-11-28 03:09:53",
-    "last_attempt_at": "2026-11-28 03:09:53",
+    "last_success_at": "2026-11-28 03:41:50",
+    "last_attempt_at": "2026-11-28 03:41:50",
     "data_quality": "dual_source",
     "calendar_source": "sina_quotes_service+tencent_kline",
     "recent_trade_days": [
